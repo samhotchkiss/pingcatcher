@@ -80,7 +80,7 @@ class GitHub extends PingCatcher
 				// Look for @mentions in each comment
 				if ( $ncomms ) {
 					foreach ( $ncomms as $nc ) {
-						if( stripos( $nc->body, '@samhotchkiss' ) !== false ) {
+						if( stripos( $nc->body, '@' . GITHUB_USERNAME ) !== false ) {
 							$this->add_task( '**Mention**: ' . $n->subject->title . ' by _' . $nc->user->login . '_', $nc->html_url, $project = 'github', $nc->body );
 						}
 					}
