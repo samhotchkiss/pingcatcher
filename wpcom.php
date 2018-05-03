@@ -24,7 +24,7 @@ class WPCom extends PingCatcher
 
 		$curl = curl_init( $url );
 
-		curl_setopt( $curl, CURLOPT_HTTPHEADER, array( 'Authorization: Bearer ' . $token, 'Accept: application/json', 'User-Agent: PingCatcher' ) );
+		curl_setopt( $curl, CURLOPT_HTTPHEADER, array( 'Authorization: Bearer ' . $token, 'Accept: application/json', 'User-Agent: DailyDash' ) );
 		curl_setopt( $curl, CURLOPT_RETURNTRANSFER, 1 );
 
 		$ret = curl_exec( $curl );
@@ -50,9 +50,17 @@ class WPCom extends PingCatcher
 		$last_imported = time() - 86400;
 
 		$notifications = $this->get( 'notifications', array( 'number' => $number ) );
+		
+		echo count($notifications->notes) . ' to check.<br>';
+		
+		echo '<pre>';
+		print_r( $notifications );
+		echo '</pre>';
 
 		if ( $notifications && isset( $notifications->notes ) ) {
 			foreach ( $notifications->notes as $n ) {
+				
+				$project = 'wpcom';
 				
 				// More than a day old?  Move along.
 				if ( $n->timestamp <= $last_imported ) {
@@ -63,6 +71,9 @@ class WPCom extends PingCatcher
 				if( !isset( $n->subject->text ) ) {
 					continue;
 				}
+				
+				echo 'Still running...<br>';
+				
 
 				// Not a direct mention?  Carry on.
 				if( stripos( $n->subject->text, 'mentioned you' ) )
@@ -78,6 +89,8 @@ class WPCom extends PingCatcher
 				} else {
 					continue;
 				}
+
+				echo 'Still going...<br>';
 
 				
 				$item_count = count( $n->body->items );

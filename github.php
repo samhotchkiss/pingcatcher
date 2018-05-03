@@ -44,14 +44,16 @@ class GitHub extends PingCatcher
 	
 	function get_mentions( $new_mentions_only = false )
 	{
+		echo 'running github<br>';
 		$o = array();
 		
-		$query_last_checked = date( 'c', strtotime( '7 days ago' ) );
+		$query_last_checked = date( 'c', strtotime( '1 day ago' ) );
 
 		$notifications = $this->get( 'notifications', array( 'all' => 'true', 'participating' => 'true', 'since' => $query_last_checked ) );
 		
 		if ( $notifications ) {
 			foreach ( $notifications as $n ) {
+				echo 'checking ' . $n->subject->title . '<br>';
 				
 				// Check the original message
 				$nbody = $this->get( $n->subject->url );

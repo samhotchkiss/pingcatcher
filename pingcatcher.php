@@ -1,32 +1,6 @@
 <?php 
 
-// Get a random string from somewhere like https://www.random.org/strings/?num=1&len=20&digits=on&upperalpha=on&loweralpha=on&unique=on&format=html&rnd=new
-// You'll use this to run this script.
-define( 'EXEC_SECRET', '' );
-
-// You can get this from https://github.com/settings/tokens/new
-// The token needs "repo" and "notifications" access
-define( 'GITHUB_TOKEN', '' );
-
-// Your GitHub username (without the @)
-define( 'GITHUB_USERNAME', '' );
-
-// The Todoist list ID where you'd like GitHub todos to go.
-// To get this, load the list you want to use in the todoist web interface.  At the end of the URL, you'll
-// see something like "project%2F1282571104".  The numbers AFTER the "F" are the target list ID
-define( 'GITHUB_TARGET_LIST',  );
-
-// You're going to need to create an oAuth app and authorize it to get this token. Sorry!
-define( 'WPC_TOKEN', '' );
-
-// The Todoist list ID where you'd like WPCom todos to go.
-define( 'WPC_TARGET_LIST',  );
-
-// 1. Go to https://developer.todoist.com/appconsole.html
-// 2. Create a new app.  Name it anything.
-// 3. Scroll down and click "Create Test Token"
-define( 'TODOIST_TOKEN', '' );
-
+require( 'secrets.php' );
 
 if( !isset( $_GET[ 'secret' ] ) || $_GET[ 'secret' ] != EXEC_SECRET ) {
 	die( 'Adios.' );
@@ -39,67 +13,26 @@ class PingCatcher
 {
 	public $history;
 	
-	function get_history()
+	function log_task( $sig, $note )
 	{
-		if( $this->history ) {
-			return $this->history;
-		}
-			
-		$file   = 'history.txt';
-		$handle = fopen( $file, 'r' );
-		$data   = fread( $handle, filesize( $file ) );
+		$my_file = 'history/' . $sig . '.txt';
+		$handle = fopen( $my_file, 'w' ) or die( 'Cannot open file:  ' . $my_file );
+		$data = date('r') . PHP_EOL . PHP_EOL . $note;
+		fwrite($handle, $data);
 		fclose($handle);
-		
-		if( $data ) {
-			$data = json_decode( $data, true );
-		}  else {
-			$data = array();
-		}
-		
-		$this->history = $data;
-		
-		return $data;
-	}
-	
-	function log_task( $sig )
-	{
-		$this->get_history();
-		
-		$this->history[ $sig ] = time();
 		
 		return true;
 	}
 	
 	function already_added( $sig )
-	{
-		$this->get_history();
-		
-		return isset( $this->history[ $sig ] );
+	{		
+		return file_exists( 'history/' . $sig . '.txt' );
 	}
 	
-	function save_history()
-	{
-		$this->get_history();
-		
-		$this->clean_history();
-		
-		$my_file = 'history.txt';
-		$handle = fopen( $my_file, 'w' ) or die( 'Cannot open file:  ' . $my_file );
-		$data = json_encode( $this->history );
-		fwrite($handle, $data);
-		fclose($handle);
-	}
-	
-	//clean out any tasks added more than 48 hours ago
+	//clean out any tasks added more than 72 hours ago
 	function clean_history()
 	{
-		$long_ago = time() - ( 86400 * 2 );
-		
-		foreach( $this->history as $sig => $time ) {
-			if( $time < $long_ago ) {
-				unset( $this->history[ $sig ] );
-			}
-		}
+		return;
 	}
 
 	function add_task( $title, $link = null , $project = 'github', $note = null )
@@ -113,7 +46,7 @@ class PingCatcher
 		$sig = md5( $title . $link . $project . $note );
 		
 		if( $this->already_added( $sig ) ) {
-			echo 'Already added "' . $title . '" <br />';
+			echo 'Already added "' . $title . '" (' . $link . ')<br />';
 			return;
 		}
 		
@@ -122,6 +55,8 @@ class PingCatcher
 		
 		if( $project == 'wpcom' ) {
 			$project_id = WPC_TARGET_LIST;
+		} elseif( $project == 'wpcom-p2' ) {
+			$project_id = WPC_P2_TARGET_LIST;
 		} else {
 			$project_id = GITHUB_TARGET_LIST;
 		}
@@ -156,6 +91,8 @@ class PingCatcher
 			// If we can add the task, then try to add The Body
 			if( $this->todoist_request( $args ) )
 			{
+				$this->log_task( $sig, $args['args']['content'] . PHP_EOL . $note );
+				
 				$args = array();
 				$args['type'] = 'note_add';
 				$args['temp_id'] = $temp_id2;
@@ -167,7 +104,6 @@ class PingCatcher
 				// Add note
 				$this->todoist_request( $args );
 				
-				$this->log_task( $sig );
 			}
 		
 			
@@ -204,7 +140,7 @@ class PingCatcher
 		  return false;
 		}
 		
-		sleep( 10 );
+		sleep( 5 );
 		
 		$o = json_decode( $ret, true );
 		
@@ -219,17 +155,17 @@ class PingCatcher
 }
 
 if( WPC_TOKEN ) {
+	echo 'Checking wpcom';
 	include 'wpcom.php';
 	$wpc = new WPCom;
 	$wpc->get_mentions();
-	$wpc->save_history();
 }
 
 if( GITHUB_TOKEN ) {
+	echo 'Checking github';
 	include 'github.php';
 	$github = new GitHub;
 	$github->get_mentions();
-	$github->save_history();
 }
 
 
